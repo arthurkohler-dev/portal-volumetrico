@@ -34,8 +34,8 @@ void setup() {
 
 void loop() {
   revolMotor(motor);
-  readToF(tof_left);
-  readToF(tof_top);
-  readToF(tof_right);
+  printDist(readToF(tof_left));
+  printDist(readToF(tof_top));
+  printDist(readToF(tof_right));
   Serial.printf("\n");
 }

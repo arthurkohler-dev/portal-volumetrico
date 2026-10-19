@@ -5,4 +5,5 @@
 #include "Adafruit_VL53L0X.h"
 
 void initToF(int XSHUT, int TOF_ADDR, Adafruit_VL53L0X &tof);
-void readToF(Adafruit_VL53L0X &tof);
+int readToF(Adafruit_VL53L0X &tof);
+void printDist(int dist);
