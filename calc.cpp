@@ -1,46 +1,56 @@
 #include "calc.h"
 
 bool rising(const Sample* samples, int i) { return samples[i].left < samples[i+1].left;}
+static float dSteps (const Sample* s, int a, int b) { return float(s[b].step - s[a].step); }
+static float dLeft  (const Sample* s, int a, int b) { return float(s[b].left - s[a].left); }
+static float calcExtent(const Sample* s, int n, const Calib &calib){
+  int i;
+  float min_left = s[0].left, min_right = s[0].right;
+  for(i = 1; i < n; i++){
+    min_left  = min_left  < s[i].left  ? min_left  : s[i].left;
+    min_right = min_right < s[i].right ? min_right : s[i].right;
+  }
+  return calib.D - (min_left + min_right);
+}
 
 Faces fitFaces (const Sample* samples, int n, const Calib &calib){
   Faces faces = {};
   if (n < 3) { faces.status = CALC_ERR_FEW_SAMPLES; return faces;}
-  float delta_sA, delta_sB, delta_s, delta_d, min_left = samples[0].left, min_right = samples[0].right;
-  int switch_i;
-  float cross;
-
-  int i = 1;
-  bool slope = (samples[0].left < samples[1].left);
-  while (i < n-1 && (samples[i].left < samples[i+1].left) == slope) i++;
-
+  
+  float delta_sA, delta_sB, delta_s, delta_d, cross;
+  int switch_i, i = 1;
+  bool slope = rising(samples, 0);
+  
+  while (i < n-1 && rising(samples, i) == slope) i++;
   switch_i = i;
-  delta_sA = samples[i].step - samples[0].step;
+
+  delta_sA = dSteps(samples, 0, i);
   slope = !slope;  
-  while (i < n-1 && (samples[i].left <= samples[i+1].left) == slope) i++;
-  delta_sB = samples[i].step - samples[switch_i].step;
+  while (i < n-1 && rising(samples, i) == slope) i++;
+  delta_sB = dSteps(samples, switch_i, i);
   
   if (delta_sA > delta_sB){
     delta_s = delta_sA;
-    delta_d = samples[switch_i].left - samples[0].left;
+    delta_d = dLeft(samples, 0, switch_i);
   }else{
     delta_s = delta_sB;
-    delta_d = samples[i].left - samples[switch_i].left;
-  }
-
-  for(int k = 1; k < n; k++){
-    min_left = min_left < samples[k].left ? min_left : samples[k].left;
-    min_right = min_right < samples[k].right ? min_right : samples[k].right;
+    delta_d = dLeft(samples, switch_i, i);
   }
 
   delta_s = delta_s * calib.mm_per_step;
   delta_d = fabsf(delta_d);
+  
   if (delta_s < calib.ds_min) { faces.status = CALC_ERR_ZERO_DS; return faces;}
-  cross = calib.D - (min_left + min_right);
+  
+  cross = calcExtent(samples, n, calib);
   faces.A = sqrtf(delta_s*delta_s + delta_d*delta_d);
   faces.B = (cross - delta_d)*faces.A/delta_s;
+  
+  if (faces.B <= 0) { faces.status = CALC_ERR_LOW_CONF; return faces; }
+  
   faces.theta = atan2f(delta_d, delta_s);
   faces.status = 0;
-
+  
   return faces;
 }
 
