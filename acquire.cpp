@@ -1,10 +1,29 @@
 #include "acquire.h"
+#ifndef FILTRO_MEDIANA
+#error "FILTRO_MEDIANA nao definido no config.h"
+#endif
 
+
+static int median3(int a, int b, int c) {
+  if (a > b) { int t = a; a = b; b = t; }
+  if (b > c) { int t = b; b = c; c = t; }
+  return (a > b) ? a : b;
+}
+
+static int readFiltered(TofId id) {
+#if FILTRO_MEDIANA
+  int a = readTof(id), b = readTof(id), c = readTof(id);
+  if (a < 0 || b < 0 || c < 0) return -1;
+  return median3(a, b, c);
+#else
+  return readTof(id);
+#endif
+}
 
 static bool readAll(Sample &s){ 
   int id, dist[TOF_COUNT];
   for ( id = 0; id < TOF_COUNT; id++){
-    dist[id] = readTof((TofId)id);
+    dist[id] = readFiltered((TofId)id);
     if (dist[id] < 0) return false; 
   }
   s.left = dist[TOF_LEFT];
@@ -25,10 +44,6 @@ static bool present(const Sample &s, const Calib &c){
     s.top   < (c.base_top   - MARGEM_MM));
 }
 
-static void advance(Motor* m, int k){
-  for (int i = 0; i < k; i++) stepMotor(m);
-}
-
 bool measureBaseline(Calib &c){
   int i, counter = 0;
   Sample s;
@@ -46,6 +61,9 @@ bool measureBaseline(Calib &c){
   c.base_top    = sum_t/counter;
   c.base_right  = sum_r/counter;
   return true;
+}
+static void advance(Motor* m, int k){
+  for (int i = 0; i < k; i++) stepMotor(m);
 }
 
 BoxResult acquireBox(Motor* motor, const Calib &calib){
