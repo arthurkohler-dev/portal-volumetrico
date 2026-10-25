@@ -1,6 +1,5 @@
-Makefile
-
-
 build/
 compile_commands.json
 .clangd
+tags
+teste/teste
