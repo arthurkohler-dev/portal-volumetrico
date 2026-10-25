@@ -1,6 +1,13 @@
 #include "calc.h"
 
-bool rising(const Sample* samples, int i) { return samples[i].left < samples[i+1].left;}
+struct Faces{
+  float A;
+  float B;
+  float theta;
+  uint8_t status;
+};
+
+static bool rising(const Sample* samples, int i) { return samples[i].left < samples[i+1].left;}
 static float dSteps (const Sample* s, int a, int b) { return float(s[b].step - s[a].step); }
 static float dLeft  (const Sample* s, int a, int b) { return float(s[b].left - s[a].left); }
 static float calcExtent(const Sample* s, int n, const Calib &calib){
@@ -13,7 +20,7 @@ static float calcExtent(const Sample* s, int n, const Calib &calib){
   return calib.D - (min_left + min_right);
 }
 
-Faces fitFaces (const Sample* samples, int n, const Calib &calib){
+static Faces fitFaces (const Sample* samples, int n, const Calib &calib){
   Faces faces = {};
   if (n < 3) { faces.status = CALC_ERR_FEW_SAMPLES; return faces;}
   
@@ -54,7 +61,7 @@ Faces fitFaces (const Sample* samples, int n, const Calib &calib){
   return faces;
 }
 
-float calcHeight(const Sample* samples, int n, const Calib &calib){
+static float calcHeight(const Sample* samples, int n, const Calib &calib){
   int i;
   float min_height = samples[0].top;
   for (i = 1; i < n; i++)
@@ -62,9 +69,9 @@ float calcHeight(const Sample* samples, int n, const Calib &calib){
   return (calib.base_top - min_height);
 }
 
-float calcLength(Faces f){ return fmaxf(f.A, f.B);}
-float calcWidth (Faces f){ return fminf(f.A, f.B);}
-float calcTheta (Faces f){ return f.theta;}
+static float calcLength(Faces f){ return fmaxf(f.A, f.B);}
+static float calcWidth (Faces f){ return fminf(f.A, f.B);}
+static float calcTheta (Faces f){ return f.theta;}
 
 BoxResult calcBox(const Sample* samples, int n, const Calib &calib){
   Faces faces = fitFaces(samples, n, calib);
