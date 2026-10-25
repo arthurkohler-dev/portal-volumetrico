@@ -1,9 +1,7 @@
 #pragma once
-#include <Arduino.h>
-#include <Wire.h> //lib used for I2C comunnication
 #include "config.h"
-#include "Adafruit_VL53L0X.h"
 
-void initToF(int XSHUT, int TOF_ADDR, Adafruit_VL53L0X &tof);
-int readToF(Adafruit_VL53L0X &tof);
-void printDist(int dist);
+enum TofId { TOF_LEFT, TOF_TOP, TOF_RIGHT, TOF_COUNT};
+int   readTof(TofId id);
+void  initAllTof(); 
+void  printDist(int dist);
