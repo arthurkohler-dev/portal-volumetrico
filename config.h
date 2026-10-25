@@ -25,3 +25,8 @@
 #define MAX_SAMPLES     ((int)(COMPR_MAX_MM / (K_STEPS * MM_PER_STEP) * 1.3f))
 #define N_FIM           5
 #define MAX_FALHAS      25
+
+//Calib
+#define D_MM            50.0f   // TODO: medir com régua
+#define DS_MIN_MM       20.0f   // TODO: ajustar com caixas reais
+#define FILTRO_MEDIANA  1
