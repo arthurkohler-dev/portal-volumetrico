@@ -6,18 +6,16 @@ struct Faces{
   float theta;
   uint8_t status;
 };
-
-static bool rising(const Sample* samples, int i) { return samples[i].left < samples[i+1].left;}
+enum Lat { LEFT, RIGHT, LAT_COUNT};
 static float dSteps (const Sample* s, int a, int b) { return float(s[b].step - s[a].step); }
 static float dLeft  (const Sample* s, int a, int b) { return float(s[b].left - s[a].left); }
-static float calcExtent(const Sample* s, int n, const Calib &calib){
+static void calcMin(const Sample* s, int n,int* mins){
   int i;
-  float min_left = s[0].left, min_right = s[0].right;
-  for(i = 1; i < n; i++){
-    min_left  = min_left  < s[i].left  ? min_left  : s[i].left;
-    min_right = min_right < s[i].right ? min_right : s[i].right;
+  mins[LEFT] = mins[RIGHT] = 0;
+  for (i = 0; i < n; i++){
+    mins[LEFT]  = s[mins[LEFT]].left   <=  s[i].left  ? mins[LEFT]   : i;
+    mins[RIGHT] = s[mins[RIGHT]].right <=  s[i].right ? mins[RIGHT]  : i;
   }
-  return calib.D - (min_left + min_right);
 }
 
 static Faces fitFaces (const Sample* samples, int n, const Calib &calib){
@@ -25,23 +23,18 @@ static Faces fitFaces (const Sample* samples, int n, const Calib &calib){
   if (n < 3) { faces.status = CALC_ERR_FEW_SAMPLES; return faces;}
   
   float delta_sA, delta_sB, delta_s, delta_d, cross;
-  int switch_i, i = 1;
-  bool slope = rising(samples, 0);
+  int mins[LAT_COUNT] = {};
   
-  while (i < n-1 && rising(samples, i) == slope) i++;
-  switch_i = i;
+  calcMin(samples, n, mins);
+  delta_sA = dSteps(samples, 0, mins[LEFT]);
+  delta_sB = dSteps(samples, mins[LEFT], n - 1);
 
-  delta_sA = dSteps(samples, 0, i);
-  slope = !slope;  
-  while (i < n-1 && rising(samples, i) == slope) i++;
-  delta_sB = dSteps(samples, switch_i, i);
-  
   if (delta_sA > delta_sB){
     delta_s = delta_sA;
-    delta_d = dLeft(samples, 0, switch_i);
+    delta_d = dLeft(samples, 0, mins[LEFT]);
   }else{
     delta_s = delta_sB;
-    delta_d = dLeft(samples, switch_i, i);
+    delta_d = dLeft(samples, mins[LEFT], n-1);
   }
 
   delta_s = delta_s * calib.mm_per_step;
@@ -49,7 +42,7 @@ static Faces fitFaces (const Sample* samples, int n, const Calib &calib){
   
   if (delta_s < calib.ds_min) { faces.status = CALC_ERR_ZERO_DS; return faces;}
   
-  cross = calcExtent(samples, n, calib);
+  cross = calib.D - (samples[mins[LEFT]].left + samples[mins[RIGHT]].right);
   faces.A = sqrtf(delta_s*delta_s + delta_d*delta_d);
   faces.B = (cross - delta_d)*faces.A/delta_s;
   
