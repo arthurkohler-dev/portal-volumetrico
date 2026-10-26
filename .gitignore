@@ -1,5 +1,5 @@
-build/
-compile_commands.json
-.clangd
-tags
-teste/teste
+main/build/
+main/compile_commands.json
+main/.clangd
+main/tags
+main/teste/teste
